@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Greencastle Chess Club — Beginner Chess Rules & Mechanics</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            chess: {
+              dark: '#0f172a',
+              card: '#1e293b',
+              border: '#334155',
+              boardWhite: '#f0d9b5',
+              boardBlack: '#b58863',
+              gold: '#f59e0b',
+              goldHover: '#d97706'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Confetti script -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+    .interactive-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 360px;
+      height: 360px;
+      border: 4px solid #78350f;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 0 auto;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    @media (max-width: 480px) {
+      .interactive-board {
+        width: 300px;
+        height: 300px;
+      }
+    }
+    .board-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+    .board-cell.light { background-color: #f0d9b5; color: #1e293b; }
+    .board-cell.dark { background-color: #b58863; color: #f8fafc; }
+    .board-cell.selected { background-color: #facc15 !important; }
+    .board-cell.target::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background-color: rgba(16, 185, 129, 0.85);
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+    }
+    .board-cell.target-capture {
+      background-color: rgba(239, 68, 68, 0.6) !important;
+    }
+    .board-cell.target-capture::after {
+      content: '';
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border: 3px solid #dc2626;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+
+  <!-- ==================== TOP NAVIGATION BAR ==================== -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-md">
+    <!-- Club Title & App Badge -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl shadow-inner">
+        📖
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-lg text-amber-400 tracking-wide">Greencastle Chess Club</h1>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700" data-i18n="appBadge">Rules Guide</span>
+        </div>
+        <p class="text-xs text-slate-400" data-i18n="appSubtitle">Interactive Beginner Chess Rules & Mechanics</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex bg-slate-800 p-1 rounded-lg border border-slate-700 text-xs sm:text-sm overflow-x-auto custom-scroll">
+      <button onclick="switchTab('board')" id="tab-btn-board" class="tab-btn px-3 py-1.5 rounded-md font-medium transition bg-amber-500 text-slate-950" data-i18n="tabBoard">🏁 The Board</button>
+      <button onclick="switchTab('pieces')" id="tab-btn-pieces" class="tab-btn px-3 py-1.5 rounded-md font-medium transition text-slate-300 hover:text-white" data-i18n="tabPieces">♟️ The 6 Pieces</button>
+      <button onclick="switchTab('special')" id="tab-btn-special" class="tab-btn px-3 py-1.5 rounded-md font-medium transition text-slate-300 hover:text-white" data-i18n="tabSpecial">✨ Special Rules</button>
+      <button onclick="switchTab('win')" id="tab-btn-win" class="tab-btn px-3 py-1.5 rounded-md font-medium transition text-slate-300 hover:text-white" data-i18n="tabWin">👑 Win & Draws</button>
+      <button onclick="switchTab('challenges')" id="tab-btn-challenges" class="tab-btn px-3 py-1.5 rounded-md font-medium transition text-slate-300 hover:text-white" data-i18n="tabChallenges">🎯 Mini Quiz</button>
+    </nav>
+
+    <!-- Right Controls: Suite Switcher & Language -->
+    <div class="flex items-center gap-2">
+      <!-- Switch to other club apps -->
+      <a href="../presentation-tool/index.html" class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white rounded-lg border border-amber-500/40 text-xs font-semibold transition shadow-sm" title="Club Slides & Next Meeting Calendar">
+        <span>📽️</span>
+        <span class="hidden md:inline" data-i18n="navSlidesTool">Meetup Slides</span>
+      </a>
+      <a href="../meetup-tool/index.html" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-semibold transition" title="Go to Meetup Director Dashboard">
+        <span>⏱️</span>
+        <span class="hidden md:inline" data-i18n="navMeetupTool">Meetup Tool</span>
+      </a>
+      <a href="../scorekeeping-tool/index.html" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs font-semibold transition" title="Go to Scorekeeping Tutorial">
+        <span>✍️</span>
+        <span class="hidden md:inline" data-i18n="navNotationTool">Scorekeeping</span>
+      </a>
+
+      <!-- Language Toggle -->
+      <button onclick="toggleLanguage()" id="lang-toggle-btn" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold rounded-lg border border-slate-700 text-xs sm:text-sm transition shadow-sm">
+        <span>🌐</span>
+        <span id="lang-btn-label">English</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full">
+
+    <!-- TAB 1: THE BOARD & COORDINATES -->
+    <section id="view-board" class="tab-content block space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h2 class="text-2xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+          <span>🏁</span> <span data-i18n="boardTitle">The Chessboard & Setup</span>
+        </h2>
+        <p class="text-sm text-slate-300" data-i18n="boardDesc">
+          A standard chessboard is made of 64 squares (32 light, 32 dark). Understanding how to set up the board properly is the very first step in chess!
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Interactive Chessboard -->
+        <div class="lg:col-span-6 bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col items-center">
+          <div class="interactive-board mb-4" id="board-grid-basic">
+            <!-- Rendered by JS -->
+          </div>
+          <!-- Coordinate read-out -->
+          <div class="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-xs text-slate-300 flex items-center gap-3">
+            <span data-i18n="squareInspectorLabel">Inspected Square:</span>
+            <span id="inspect-sq" class="font-mono font-bold text-amber-400 text-base">e4</span>
+            <span id="inspect-sq-desc" class="text-slate-400">(File e, Rank 4)</span>
+          </div>
+
+          <div class="flex gap-2 mt-4">
+            <button onclick="setupInitialPieces()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center gap-1.5" data-i18n="setupAllPiecesBtn">
+              <span>♟️</span> <span>Setup Initial Board</span>
+            </button>
+            <button onclick="clearBoardDemo()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition" data-i18n="clearBoardBtn">
+              Clear Board
+            </button>
+          </div>
+        </div>
+
+        <!-- Rules & Memory Tricks -->
+        <div class="lg:col-span-6 space-y-4">
+          <!-- Golden Rule 1 -->
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg shrink-0">1</div>
+            <div>
+              <h3 class="font-bold text-white text-base" data-i18n="ruleWhiteRightTitle">"White on Right" (右下角為白格)</h3>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed" data-i18n="ruleWhiteRightDesc">
+                Always orient the board so that each player has a light (white) square in their bottom-right corner (h1 for White, a8 for Black).
+              </p>
+            </div>
+          </div>
+
+          <!-- Golden Rule 2 -->
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg shrink-0">2</div>
+            <div>
+              <h3 class="font-bold text-white text-base" data-i18n="ruleQueenColorTitle">"Queen on Her Own Color" (后在自家顏色)</h3>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed" data-i18n="ruleQueenColorDesc">
+                The White Queen always begins on a light square (d1). The Black Queen begins on a dark square (d8). The King stands right beside her on e1 / e8.
+              </p>
+            </div>
+          </div>
+
+          <!-- Board Coordinates: Ranks & Files -->
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <h3 class="font-bold text-white text-base mb-2 flex items-center gap-2">
+              <span>📐</span> <span data-i18n="coordsTitle">Coordinates: Files & Ranks</span>
+            </h3>
+            <ul class="text-xs text-slate-300 space-y-2">
+              <li class="flex items-start gap-2">
+                <strong class="text-amber-400 shrink-0" data-i18n="filesLabel">Files (列/直行):</strong>
+                <span data-i18n="filesDesc">8 vertical columns named with letters <strong>a, b, c, d, e, f, g, h</strong> from left to right (from White's perspective).</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <strong class="text-amber-400 shrink-0" data-i18n="ranksLabel">Ranks (行/橫行):</strong>
+                <span data-i18n="ranksDesc">8 horizontal rows numbered <strong>1 to 8</strong>. White starts on ranks 1 & 2; Black starts on ranks 7 & 8.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <strong class="text-amber-400 shrink-0" data-i18n="diagonalsLabel">Diagonals (斜行):</strong>
+                <span data-i18n="diagonalsDesc">Straight slant lines of squares sharing the exact same color. Bishops and Queens travel along diagonals!</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- TAB 2: THE 6 PIECES & MOVEMENT -->
+    <section id="view-pieces" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h2 class="text-2xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+          <span>♟️</span> <span data-i18n="piecesTitle">The 6 Chess Pieces & Movement</span>
+        </h2>
+        <p class="text-sm text-slate-300" data-i18n="piecesDesc">
+          Click any piece below to inspect its unique superpower, point value, and see its legal moves highlighted live on the board!
+        </p>
+      </div>
+
+      <!-- Piece Selector Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3" id="piece-selector-container">
+        <button onclick="selectPiece('pawn')" id="btn-piece-pawn" class="piece-btn p-3 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex flex-col items-center transition">
+          <span class="text-3xl">♟️</span>
+          <span class="font-bold text-sm mt-1" data-i18n="piecePawn">Pawn (兵)</span>
+          <span class="text-xs text-slate-400">1 pt</span>
+        </button>
+        <button onclick="selectPiece('knight')" id="btn-piece-knight" class="piece-btn p-3 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 flex flex-col items-center transition">
+          <span class="text-3xl">♞</span>
+          <span class="font-bold text-sm mt-1" data-i18n="pieceKnight">Knight (馬)</span>
+          <span class="text-xs text-slate-400">3 pts</span>
+        </button>
+        <button onclick="selectPiece('bishop')" id="btn-piece-bishop" class="piece-btn p-3 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 flex flex-col items-center transition">
+          <span class="text-3xl">♝</span>
+          <span class="font-bold text-sm mt-1" data-i18n="pieceBishop">Bishop (象)</span>
+          <span class="text-xs text-slate-400">3 pts</span>
+        </button>
+        <button onclick="selectPiece('rook')" id="btn-piece-rook" class="piece-btn p-3 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 flex flex-col items-center transition">
+          <span class="text-3xl">♜</span>
+          <span class="font-bold text-sm mt-1" data-i18n="pieceRook">Rook (車)</span>
+          <span class="text-xs text-slate-400">5 pts</span>
+        </button>
+        <button onclick="selectPiece('queen')" id="btn-piece-queen" class="piece-btn p-3 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 flex flex-col items-center transition">
+          <span class="text-3xl">♛</span>
+          <span class="font-bold text-sm mt-1" data-i18n="pieceQueen">Queen (后)</span>
+          <span class="text-xs text-slate-400">9 pts</span>
+        </button>
+        <button onclick="selectPiece('king')" id="btn-piece-king" class="piece-btn p-3 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 flex flex-col items-center transition">
+          <span class="text-3xl">♚</span>
+          <span class="font-bold text-sm mt-1" data-i18n="pieceKing">King (王)</span>
+          <span class="text-xs text-slate-400">∞ (Invaluable)</span>
+        </button>
+      </div>
+
+      <!-- Piece Movement Demonstration Area -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Interactive Board Display -->
+        <div class="lg:col-span-6 bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col items-center">
+          <div class="interactive-board mb-3" id="board-grid-piece">
+            <!-- Rendered by JS -->
+          </div>
+          <p class="text-xs text-slate-400 text-center" data-i18n="pieceBoardHint">
+            Green dots indicate valid movement destinations. Red target circles indicate legal capture targets!
+          </p>
+        </div>
+
+        <!-- Piece Deep-Dive Card -->
+        <div class="lg:col-span-6 bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4" id="piece-detail-card">
+          <!-- Dynamically populated by selectPiece() -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- TAB 3: SPECIAL RULES (CASTLING, PROMOTION, EN PASSANT) -->
+    <section id="view-special" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h2 class="text-2xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+          <span>✨</span> <span data-i18n="specialTitle">Three Essential Special Rules</span>
+        </h2>
+        <p class="text-sm text-slate-300" data-i18n="specialDesc">
+          Chess has 3 special maneuvers that every beginner must master: Castling for king safety, Pawn Promotion for endgame power, and En Passant.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 1. Castling -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold" data-i18n="castleBadge">King Safety</span>
+              <span class="text-xs font-mono text-slate-400">O-O / O-O-O</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <span>🏰</span> <span data-i18n="castleTitle">Castling (王車易位)</span>
+            </h3>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4" data-i18n="castleDesc">
+              The only move where two pieces move at once! The King steps <strong>2 squares</strong> toward the Rook, and the Rook leaps right over the King.
+            </p>
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1.5 mb-4">
+              <strong class="text-amber-300" data-i18n="castleRulesTitle">Strict Requirements:</strong>
+              <ul class="list-disc list-inside space-y-1 text-slate-400">
+                <li data-i18n="castleRule1">Neither King nor chosen Rook has moved yet.</li>
+                <li data-i18n="castleRule2">All squares between King and Rook are empty.</li>
+                <li data-i18n="castleRule3">The King is NOT currently in check.</li>
+                <li data-i18n="castleRule4">The King cannot pass through or land on a square attacked by an enemy piece.</li>
+              </ul>
+            </div>
+          </div>
+          <button onclick="demoSpecial('castle')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold rounded-xl border border-amber-500/30 text-xs transition" data-i18n="demoCastleBtn">
+            📺 Show Castling on Board
+          </button>
+        </div>
+
+        <!-- 2. Promotion -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold" data-i18n="promoteBadge">Pawn Superpower</span>
+              <span class="text-xs font-mono text-slate-400">=Q, =R, =B, =N</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <span>👑</span> <span data-i18n="promoteTitle">Promotion (兵的升變)</span>
+            </h3>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4" data-i18n="promoteDesc">
+              When a humble pawn marches all the way to the far end of the board (rank 8 for White, rank 1 for Black), it immediately transforms into a <strong>Queen, Rook, Bishop, or Knight</strong>!
+            </p>
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1.5 mb-4">
+              <strong class="text-amber-300" data-i18n="promoteRulesTitle">Key Facts:</strong>
+              <ul class="list-disc list-inside space-y-1 text-slate-400">
+                <li data-i18n="promoteFact1">Almost always promoted to a Queen ("Queening") because she is the most powerful piece.</li>
+                <li data-i18n="promoteFact2">You can have multiple Queens on the board at the same time!</li>
+                <li data-i18n="promoteFact3">Underpromotion to a Knight is sometimes used to deliver an immediate check or fork.</li>
+              </ul>
+            </div>
+          </div>
+          <button onclick="demoSpecial('promotion')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold rounded-xl border border-amber-500/30 text-xs transition" data-i18n="demoPromoteBtn">
+            📺 Show Promotion on Board
+          </button>
+        </div>
+
+        <!-- 3. En Passant -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold" data-i18n="enPassantBadge">French for "In Passing"</span>
+              <span class="text-xs font-mono text-slate-400">e.p.</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <span>⚡</span> <span data-i18n="enPassantTitle">En Passant (吃過路兵)</span>
+            </h3>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4" data-i18n="enPassantDesc">
+              A special pawn-capturing rule. If an enemy pawn uses its two-square first move to land directly adjacent to your pawn on the 5th rank, you can capture it diagonally as if it had only moved one square!
+            </p>
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1.5 mb-4">
+              <strong class="text-amber-300" data-i18n="enPassantRulesTitle">One Critical Catch:</strong>
+              <p class="text-slate-400" data-i18n="enPassantCatchText">
+                You <strong>must</strong> execute En Passant on the very next turn immediately after the enemy pawn moved. If you wait one turn, the right to capture en passant is permanently lost!
+              </p>
+            </div>
+          </div>
+          <button onclick="demoSpecial('enpassant')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold rounded-xl border border-amber-500/30 text-xs transition" data-i18n="demoEnPassantBtn">
+            📺 Show En Passant on Board
+          </button>
+        </div>
+      </div>
+
+      <!-- Demo Board Modal/Viewer -->
+      <div id="special-demo-modal" class="hidden bg-slate-900 p-6 rounded-2xl border border-amber-500/40 mt-6 flex flex-col items-center">
+        <h4 id="demo-modal-title" class="text-lg font-bold text-amber-400 mb-2">Demonstration</h4>
+        <p id="demo-modal-desc" class="text-xs text-slate-300 mb-4 text-center max-w-md"></p>
+        <div class="interactive-board mb-4" id="board-grid-special">
+          <!-- Rendered by JS -->
+        </div>
+        <button onclick="document.getElementById('special-demo-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700">
+          Close Demo
+        </button>
+      </div>
+    </section>
+
+
+    <!-- TAB 4: WINNING, CHECK & DRAWS -->
+    <section id="view-win" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h2 class="text-2xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+          <span>👑</span> <span data-i18n="winTitle">Check, Checkmate, and Draws</span>
+        </h2>
+        <p class="text-sm text-slate-300" data-i18n="winDesc">
+          The King is never actually captured or removed from the board! The game ends the very moment a King is checkmated, or when a draw is reached.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Check -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl mb-4 font-bold">
+            ⚠️
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2" data-i18n="checkTitle">Check (將軍)</h3>
+          <p class="text-xs text-slate-300 mb-4 leading-relaxed" data-i18n="checkDesc">
+            The King is under direct attack by an enemy piece. The player in check <strong>must</strong> get out of check immediately!
+          </p>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-300">
+            <strong class="text-amber-300 text-xs" data-i18n="cprTitle">Remember CPR: 3 Ways Out!</strong>
+            <ul class="space-y-1 text-slate-400">
+              <li><strong class="text-emerald-400">C - Capture:</strong> Take the attacking piece.</li>
+              <li><strong class="text-blue-400">P - Protect / Block:</strong> Slide a piece between attacker and King.</li>
+              <li><strong class="text-amber-400">R - Run:</strong> Step the King to an unattacked square.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Checkmate -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-emerald-500/50 shadow-lg shadow-emerald-950/20">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mb-4 font-bold">
+            🏆
+          </div>
+          <h3 class="text-xl font-bold text-emerald-400 mb-2" data-i18n="checkmateTitle">Checkmate (將死/將殺)</h3>
+          <p class="text-xs text-slate-300 mb-4 leading-relaxed" data-i18n="checkmateDesc">
+            The ultimate objective in chess! The King is in check, and there is <strong>zero</strong> legal escape moves (cannot Capture, Protect, or Run).
+          </p>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
+            <div class="font-bold text-emerald-300" data-i18n="gameEndsTitle">Game Over Instantly:</div>
+            <p class="text-slate-400" data-i18n="checkmatePoints">
+              The attacker wins immediately (1 point). White win is written as <strong>1 - 0</strong>, Black win is written as <strong>0 - 1</strong>. Shake hands and congratulate your opponent!
+            </p>
+          </div>
+        </div>
+
+        <!-- Stalemate & Draws -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+          <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl mb-4 font-bold">
+            🤝
+          </div>
+          <h3 class="text-xl font-bold text-white mb-2" data-i18n="stalemateTitle">Stalemate & Draws (逼和與和棋)</h3>
+          <p class="text-xs text-slate-300 mb-4 leading-relaxed" data-i18n="stalemateDesc">
+            A draw (tied game) awards <strong>½ point</strong> to each player. The most famous draw is Stalemate!
+          </p>
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1.5">
+            <div><strong class="text-amber-300" data-i18n="drawTypeStalemate">Stalemate (逼和):</strong> A player's King is NOT in check, but they have no legal moves left anywhere.</div>
+            <div><strong class="text-slate-300" data-i18n="drawTypeMaterial">Insufficient Material:</strong> Neither side has enough pieces to checkmate (e.g., King vs King).</div>
+            <div><strong class="text-slate-300" data-i18n="drawTypeRepetition">Threefold Repetition:</strong> Same exact position repeated 3 times.</div>
+            <div><strong class="text-slate-300" data-i18n="drawTypeAgreement">Draw by Agreement:</strong> Both players mutually agree to a draw.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- TAB 5: MINI CHALLENGES & QUIZ -->
+    <section id="view-challenges" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-amber-400 mb-1 flex items-center gap-2">
+            <span>🎯</span> <span data-i18n="quizTitle">Interactive Rule Challenges & Quiz</span>
+          </h2>
+          <p class="text-sm text-slate-300" data-i18n="quizDesc">
+            Test what you've learned! Answer the questions and complete mini-board exercises.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400" data-i18n="scoreLabel">Score:</span>
+          <span id="quiz-score" class="font-mono font-bold text-amber-400 text-xl px-3 py-1 bg-slate-950 rounded-xl border border-slate-800">0 / 4</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="quiz-cards-container">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ==================== SCRIPT & LOGIC ==================== -->
+  <script>
+    // --- Internationalization Dictionary ---
+    const TRANSLATIONS = {
+      en: {
+        appBadge: "Rules Guide",
+        appSubtitle: "Interactive Beginner Chess Rules & Mechanics",
+        tabBoard: "🏁 The Board",
+        tabPieces: "♟️ The 6 Pieces",
+        tabSpecial: "✨ Special Rules",
+        tabWin: "👑 Win & Draws",
+        tabChallenges: "🎯 Mini Quiz",
+        navMeetupTool: "Meetup Tool",
+        navNotationTool: "Scorekeeping",
+        boardTitle: "The Chessboard & Setup",
+        boardDesc: "A standard chessboard is made of 64 squares (32 light, 32 dark). Understanding how to set up the board properly is the very first step in chess!",
+        squareInspectorLabel: "Inspected Square:",
+        setupAllPiecesBtn: "Setup Initial Board",
+        clearBoardBtn: "Clear Board",
+        ruleWhiteRightTitle: "'White on Right' (Right Corner is Light)",
+        ruleWhiteRightDesc: "Always orient the board so that each player has a light (white) square in their bottom-right corner (h1 for White, a8 for Black).",
+        ruleQueenColorTitle: "'Queen on Her Own Color' (White Queen on White)",
+        ruleQueenColorDesc: "The White Queen always begins on a light square (d1). The Black Queen begins on a dark square (d8). The King stands right beside her on e1 / e8.",
+        coordsTitle: "Coordinates: Files & Ranks",
+        filesLabel: "Files (Columns):",
+        filesDesc: "8 vertical columns named with letters a, b, c, d, e, f, g, h from left to right (from White's perspective).",
+        ranksLabel: "Ranks (Rows):",
+        ranksDesc: "8 horizontal rows numbered 1 to 8. White starts on ranks 1 & 2; Black starts on ranks 7 & 8.",
+        diagonalsLabel: "Diagonals (Slants):",
+        diagonalsDesc: "Straight slant lines of squares sharing the exact same color. Bishops and Queens travel along diagonals!",
+        piecesTitle: "The 6 Chess Pieces & Movement",
+        piecesDesc: "Click any piece below to inspect its unique superpower, point value, and see its legal moves highlighted live on the board!",
+        piecePawn: "Pawn (兵)",
+        pieceKnight: "Knight (馬)",
+        pieceBishop: "Bishop (象)",
+        pieceRook: "Rook (車)",
+        pieceQueen: "Queen (后)",
+        pieceKing: "King (王)",
+        pieceBoardHint: "Green dots indicate valid movement destinations. Red target circles indicate legal capture targets!",
+        specialTitle: "Three Essential Special Rules",
+        specialDesc: "Chess has 3 special maneuvers that every beginner must master: Castling for king safety, Pawn Promotion for endgame power, and En Passant.",
+        castleBadge: "King Safety",
+        castleTitle: "Castling (王車易位)",
+        castleDesc: "The only move where two pieces move at once! The King steps 2 squares toward the Rook, and the Rook leaps right over the King.",
+        castleRulesTitle: "Strict Requirements:",
+        castleRule1: "Neither King nor chosen Rook has moved yet.",
+        castleRule2: "All squares between King and Rook are empty.",
+        castleRule3: "The King is NOT currently in check.",
+        castleRule4: "The King cannot pass through or land on a square attacked by an enemy piece.",
+        demoCastleBtn: "📺 Show Castling on Board",
+        promoteBadge: "Pawn Superpower",
+        promoteTitle: "Promotion (兵的升變)",
+        promoteDesc: "When a humble pawn marches all the way to the far end of the board (rank 8 for White, rank 1 for Black), it immediately transforms into a Queen, Rook, Bishop, or Knight!",
+        promoteRulesTitle: "Key Facts:",
+        promoteFact1: "Almost always promoted to a Queen ('Queening') because she is the most powerful piece.",
+        promoteFact2: "You can have multiple Queens on the board at the same time!",
+        promoteFact3: "Underpromotion to a Knight is sometimes used to deliver an immediate check or fork.",
+        demoPromoteBtn: "📺 Show Promotion on Board",
+        enPassantBadge: "French for 'In Passing'",
+        enPassantTitle: "En Passant (吃過路兵)",
+        enPassantDesc: "A special pawn-capturing rule. If an enemy pawn uses its two-square first move to land directly adjacent to your pawn on the 5th rank, you can capture it diagonally as if it had only moved one square!",
+        enPassantRulesTitle: "One Critical Catch:",
+        enPassantCatchText: "You must execute En Passant on the very next turn immediately after the enemy pawn moved. If you wait one turn, the right to capture en passant is permanently lost!",
+        demoEnPassantBtn: "📺 Show En Passant on Board",
+        winTitle: "Check, Checkmate, and Draws",
+        winDesc: "The King is never actually captured or removed from the board! The game ends the very moment a King is checkmated, or when a draw is reached.",
+        checkTitle: "Check (將軍)",
+        checkDesc: "The King is under direct attack by an enemy piece. The player in check must get out of check immediately!",
+        cprTitle: "Remember CPR: 3 Ways Out!",
+        checkmateTitle: "Checkmate (將死/將殺)",
+        checkmateDesc: "The ultimate objective in chess! The King is in check, and there is zero legal escape moves (cannot Capture, Protect, or Run).",
+        gameEndsTitle: "Game Over Instantly:",
+        checkmatePoints: "The attacker wins immediately (1 point). White win is written as 1 - 0, Black win is written as 0 - 1. Shake hands and congratulate your opponent!",
+        stalemateTitle: "Stalemate & Draws (逼和與和棋)",
+        stalemateDesc: "A draw (tied game) awards ½ point to each player. The most famous draw is Stalemate!",
+        drawTypeStalemate: "Stalemate (逼和):",
+        drawTypeMaterial: "Insufficient Material:",
+        drawTypeRepetition: "Threefold Repetition:",
+        drawTypeAgreement: "Draw by Agreement:",
+        quizTitle: "Interactive Rule Challenges & Quiz",
+        quizDesc: "Test what you've learned! Answer the questions and complete mini-board exercises.",
+        scoreLabel: "Score:"
+      },
+      zh: {
+        appBadge: "規則指南",
+        appSubtitle: "新手互動式西洋棋規則與走法手冊",
+        tabBoard: "🏁 棋盤基礎",
+        tabPieces: "♟️ 六大棋子",
+        tabSpecial: "✨ 特殊規則",
+        tabWin: "👑 勝負平局",
+        tabChallenges: "🎯 隨堂測驗",
+        navMeetupTool: "聚會主控",
+        navNotationTool: "記譜計分",
+        boardTitle: "棋盤基礎與初始擺法",
+        boardDesc: "標準西洋棋盤由 64 個黑白交錯方格組成（32 白格、32 黑格）。認識棋盤與正確擺放棋子是學棋的第一步！",
+        squareInspectorLabel: "查看方格座標:",
+        setupAllPiecesBtn: "擺放初始對局棋盤",
+        clearBoardBtn: "清空格子",
+        ruleWhiteRightTitle: "「右下角為白格」 (White on Right)",
+        ruleWhiteRightDesc: "擺放棋盤時，雙方玩家最靠近自己的右下角必須是淺色（白）格子（白方為 h1，黑方為 a8）。",
+        ruleQueenColorTitle: "「后在自家顏色」 (Queen on Her Own Color)",
+        ruleQueenColorDesc: "白皇后永遠放在淺色白格 (d1)，黑皇后永遠放在深色黑格 (d8)。國王則並肩站在旁邊的 e1 與 e8。",
+        coordsTitle: "座標系統：行 (Ranks) 與列 (Files)",
+        filesLabel: "列 (Files / 直行):",
+        filesDesc: "8 條垂直直行，由左至右以小寫字母 a, b, c, d, e, f, g, h 標示（以白方視角為準）。",
+        ranksLabel: "行 (Ranks / 橫行):",
+        ranksDesc: "8 條水平橫行，編號為 1 至 8。白方大軍從第 1、2 行出發；黑方大軍從第 7、8 行出發。",
+        diagonalsLabel: "斜線 (Diagonals):",
+        diagonalsDesc: "同色相連的斜向方格。主教 (Bishop) 與皇后 (Queen) 可以在斜線上長距離移動！",
+        piecesTitle: "六大棋子走法與威力",
+        piecesDesc: "點擊下方任一棋子，了解其特殊能力、戰力分值，並在棋盤上即時查看合法移動路徑！",
+        piecePawn: "兵 (Pawn)",
+        pieceKnight: "騎士/馬 (Knight)",
+        pieceBishop: "主教/象 (Bishop)",
+        pieceRook: "城堡/車 (Rook)",
+        pieceQueen: "皇后 (Queen)",
+        pieceKing: "國王 (King)",
+        pieceBoardHint: "綠色圓點代表可移動的目的地，紅色圓圈代表可吃子的敵方目標！",
+        specialTitle: "三大核心特殊規則",
+        specialDesc: "西洋棋中有三大特殊招式是新手必須掌握的：保護國王的王車易位、兵的升變、以及吃過路兵。",
+        castleBadge: "國王安全保衛",
+        castleTitle: "王車易位 (Castling)",
+        castleDesc: "全盤唯一能「一次移動兩隻棋子」的特殊走法！國王向城堡方向走 2 格，城堡隨即跳過國王停在旁邊。",
+        castleRulesTitle: "四大嚴格條件：",
+        castleRule1: "國王和該隻城堡在此之前從未移動過。",
+        castleRule2: "國王與城堡之間的所有格子必須完全空著。",
+        castleRule3: "國王當前沒有被將軍 (Not in check)。",
+        castleRule4: "國王經過或著陸的格子不能受到敵方棋子攻擊。",
+        demoCastleBtn: "📺 在棋盤上演示易位",
+        promoteBadge: "小兵變大將",
+        promoteTitle: "兵的升變 (Promotion)",
+        promoteDesc: "當小兵歷經千辛萬苦抵達對方底線（白兵到底第 8 行，黑兵到底第 1 行），必須立刻變身為皇后、城堡、主教或騎士！",
+        promoteRulesTitle: "重點知識：",
+        promoteFact1: "通常絕大多數情況下升變為最強大的「皇后 (Queen)」。",
+        promoteFact2: "棋盤上可以同時存在多隻同色皇后！",
+        promoteFact3: "有時為了立即將軍或捉雙，也會技巧性升變為騎士 (Underpromotion)。",
+        demoPromoteBtn: "📺 在棋盤上演示升變",
+        enPassantBadge: "法文「在路過時」",
+        enPassantTitle: "吃過路兵 (En Passant)",
+        enPassantDesc: "特殊的吃兵規則。若敵方兵從起始位「第一步走兩格」，恰好停在你的兵（位在第 5 行）旁邊，你可以像他只走了一格那樣，斜前一步將他吃掉！",
+        enPassantRulesTitle: "唯一致命限制：",
+        enPassantCatchText: "必須在對手走出兩格兵的「緊接著下一步」立刻執行！若間隔了一回合，這個吃過路兵的權利便永久失效。",
+        demoEnPassantBtn: "📺 在棋盤上演示吃過路兵",
+        winTitle: "將軍、將殺與平局判定",
+        winDesc: "西洋棋中的國王永遠不會被真正吃掉移出棋盤！對局在國王被將死的一瞬間、或是達成和棋時立即宣告結束。",
+        checkTitle: "將軍 (Check)",
+        checkDesc: "國王正受到敵方棋子的直接攻擊。被將軍的一方必須在當前回合立刻解將！",
+        cprTitle: "牢記 CPR 解將三絕招！",
+        checkmateTitle: "將死 / 將殺 (Checkmate)",
+        checkmateDesc: "西洋棋的終極獲勝目標！國王正在被將軍，且無任何合法的解將方法（無法 C 吃掉、P 阻擋、或 R 逃跑）。",
+        gameEndsTitle: "對局立即宣告結束：",
+        checkmatePoints: "攻擊方即刻獲勝並獲得 1 分。白勝記為 1 - 0，黑勝記為 0 - 1。下完請記得握手向對手致意！",
+        stalemateTitle: "逼和與其他和棋 (Stalemate & Draws)",
+        stalemateDesc: "和棋雙方各得 ½ 分。其中最常見且極具戲劇性的和棋就是「逼和 (Stalemate)」！",
+        drawTypeStalemate: "逼和 (Stalemate):",
+        drawTypeMaterial: "子力不足 (Insufficient Material):",
+        drawTypeRepetition: "三次重複局面 (Threefold Repetition):",
+        drawTypeAgreement: "提和同意 (Draw by Agreement):",
+        quizTitle: "隨堂互動規則小測驗",
+        quizDesc: "測試一下剛學到的規則！動動腦回答問題並贏得滿分星星。",
+        scoreLabel: "得分:"
+      }
+    };
+
+    let currentLang = 'en';
+
+    function t(key) {
+      return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS['en'][key] || key;
+    }
+
+    function toggleLanguage() {
+      currentLang = (currentLang === 'en') ? 'zh' : 'en';
+      localStorage.setItem('chess_rules_tool_lang', currentLang);
+      applyLanguage();
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = (currentLang === 'en') ? 'en' : 'zh-TW';
+      document.getElementById('lang-btn-label').textContent = (currentLang === 'en') ? 'English' : '繁體中文';
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) el.textContent = t(key);
+      });
+
+      renderPieceDetail(currentSelectedPiece);
+      renderQuiz();
+    }
+
+    // --- Tab Switching ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-amber-500', 'text-slate-950');
+        btn.classList.add('text-slate-300');
+      });
+
+      const target = document.getElementById(`view-${tabId}`);
+      const btn = document.getElementById(`tab-btn-${tabId}`);
+      if (target) target.classList.remove('hidden');
+      if (btn) {
+        btn.classList.add('bg-amber-500', 'text-slate-950');
+        btn.classList.remove('text-slate-300');
+      }
+    }
+
+    // --- Tab 1: Interactive Board Grid ---
+    let basicBoardState = Array(8).fill(null).map(() => Array(8).fill(''));
+
+    function initBasicBoard() {
+      const grid = document.getElementById('board-grid-basic');
+      grid.innerHTML = '';
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const cell = document.createElement('div');
+          const isLight = (r + c) % 2 === 0;
+          cell.className = `board-cell ${isLight ? 'light' : 'dark'}`;
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+
+          const fileChar = String.fromCharCode(97 + c);
+          const rankNum = 8 - r;
+          cell.dataset.sq = `${fileChar}${rankNum}`;
+
+          cell.textContent = basicBoardState[r][c];
+
+          cell.addEventListener('click', () => {
+            document.querySelectorAll('#board-grid-basic .board-cell').forEach(c => c.classList.remove('selected'));
+            cell.classList.add('selected');
+            document.getElementById('inspect-sq').textContent = cell.dataset.sq;
+            document.getElementById('inspect-sq-desc').textContent = `(File ${fileChar}, Rank ${rankNum})`;
+          });
+
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    function setupInitialPieces() {
+      basicBoardState = [
+        ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'],
+        ['♟', '♟', '♟', '♟', '♟', '♟', '♟', '♟'],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', ''],
+        ['♙', '♙', '♙', '♙', '♙', '♙', '♙', '♙'],
+        ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖']
+      ];
+      initBasicBoard();
+    }
+
+    function clearBoardDemo() {
+      basicBoardState = Array(8).fill(null).map(() => Array(8).fill(''));
+      initBasicBoard();
+    }
+
+    // --- Tab 2: Piece Movement Demo ---
+    let currentSelectedPiece = 'pawn';
+
+    const PIECE_DETAILS = {
+      pawn: {
+        symbol: '♙',
+        nameEn: 'Pawn',
+        nameZh: '兵',
+        points: 1,
+        descEn: 'Moves forward 1 square (or optionally 2 squares on its very first move). Captures 1 square diagonally forward. Never moves backwards!',
+        descZh: '向前直走一格（若是第一步可選擇直走兩格）。斜前方吃一格。永遠不能向後退！',
+        boardSetup: {
+          r: 6, c: 4, piece: '♙',
+          targets: [[5, 4], [4, 4]],
+          captures: [[5, 3], [5, 5]],
+          enemies: [[5, 3, '♟'], [5, 5, '♞']]
+        }
+      },
+      knight: {
+        symbol: '♘',
+        nameEn: 'Knight',
+        nameZh: '騎士 / 馬',
+        points: 3,
+        descEn: 'Moves in an "L-shape": 2 squares in one direction and 1 square perpendicular. The ONLY piece that can jump over any other pieces!',
+        descZh: '走「日字形」或「L 形」（直走兩格橫走一格，或橫走兩格直走一格）。全盤唯一具備「越子跳躍」特權的棋子！',
+        boardSetup: {
+          r: 4, c: 4, piece: '♘',
+          targets: [[2, 3], [2, 5], [3, 2], [3, 6], [5, 2], [6, 3], [6, 5]],
+          captures: [[5, 6]],
+          enemies: [[5, 6, '♟']]
+        }
+      },
+      bishop: {
+        symbol: '♗',
+        nameEn: 'Bishop',
+        nameZh: '主教 / 象',
+        points: 3,
+        descEn: 'Moves any number of squares diagonally. A bishop is permanently bound to the color of squares it started on (Light-square vs Dark-square Bishop).',
+        descZh: '斜向走任意格數。主教永遠只能在它起始的格子顏色（淺色格主教 vs 深色格主教）上移動，無法變換顏色。',
+        boardSetup: {
+          r: 4, c: 3, piece: '♗',
+          targets: [[3, 2], [2, 1], [1, 0], [5, 4], [6, 5], [7, 6], [3, 4], [2, 5], [5, 2]],
+          captures: [[1, 6]],
+          enemies: [[1, 6, '♜']]
+        }
+      },
+      rook: {
+        symbol: '♖',
+        nameEn: 'Rook',
+        nameZh: '城堡 / 車',
+        points: 5,
+        descEn: 'Moves any number of squares along horizontal ranks or vertical files. Powerful in open files and endgames, and participates in castling!',
+        descZh: '直線前進、後退或橫走任意格數。在開放直線上威力極大，殘局的大殺器，也是王車易位的關鍵角色！',
+        boardSetup: {
+          r: 4, c: 4, piece: '♖',
+          targets: [[4, 0], [4, 1], [4, 2], [4, 3], [4, 5], [4, 6], [4, 7], [1, 4], [2, 4], [3, 4], [5, 4], [6, 4]],
+          captures: [[0, 4]],
+          enemies: [[0, 4, '♛']]
+        }
+      },
+      queen: {
+        symbol: '♕',
+        nameEn: 'Queen',
+        nameZh: '皇后',
+        points: 9,
+        descEn: 'The most powerful attacking piece! Combines the movement of a Rook and a Bishop: moves any number of squares straight or diagonally.',
+        descZh: '全盤戰鬥力最強大的王牌！結合了城堡（直線）與主教（斜線）的威力，可向八個方向移動任意格數。',
+        boardSetup: {
+          r: 4, c: 4, piece: '♕',
+          targets: [
+            [4, 0], [4, 1], [4, 2], [4, 3], [4, 5], [4, 6], [4, 7],
+            [1, 4], [2, 4], [3, 4], [5, 4], [6, 4], [7, 4],
+            [3, 3], [2, 2], [1, 1], [0, 0], [5, 5], [6, 6],
+            [3, 5], [2, 6], [1, 7], [5, 3], [6, 2], [7, 1]
+          ],
+          captures: [[7, 7]],
+          enemies: [[7, 7, '♞']]
+        }
+      },
+      king: {
+        symbol: '♔',
+        nameEn: 'King',
+        nameZh: '國王',
+        points: 'Infinite',
+        descEn: 'The most important piece of all. Moves 1 square in any direction. Must never step onto a square under attack! The game ends if he is checkmated.',
+        descZh: '全盤核心靈魂。每次向周圍任意方向走 1 格。絕對不能走進受攻擊的格子！一旦國王被將死，對局便立刻宣告結束。',
+        boardSetup: {
+          r: 4, c: 4, piece: '♔',
+          targets: [[3, 3], [3, 4], [3, 5], [4, 3], [4, 5], [5, 3], [5, 4]],
+          captures: [[5, 5]],
+          enemies: [[5, 5, '♟']]
+        }
+      }
+    };
+
+    function selectPiece(type) {
+      currentSelectedPiece = type;
+
+      // Update button styles
+      document.querySelectorAll('.piece-btn').forEach(b => {
+        b.classList.remove('border-amber-500', 'bg-amber-500/10', 'text-amber-400');
+        b.classList.add('border-slate-700', 'bg-slate-900', 'text-slate-200');
+      });
+      const activeBtn = document.getElementById(`btn-piece-${type}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-slate-700', 'bg-slate-900', 'text-slate-200');
+        activeBtn.classList.add('border-amber-500', 'bg-amber-500/10', 'text-amber-400');
+      }
+
+      renderPieceBoard(type);
+      renderPieceDetail(type);
+    }
+
+    function renderPieceBoard(type) {
+      const info = PIECE_DETAILS[type];
+      const grid = document.getElementById('board-grid-piece');
+      grid.innerHTML = '';
+
+      const setup = info.boardSetup;
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const cell = document.createElement('div');
+          const isLight = (r + c) % 2 === 0;
+          cell.className = `board-cell ${isLight ? 'light' : 'dark'}`;
+
+          // Check if piece center
+          if (r === setup.r && c === setup.c) {
+            cell.textContent = setup.piece;
+            cell.classList.add('selected');
+          }
+
+          // Check targets
+          const isTarget = setup.targets.some(([tr, tc]) => tr === r && tc === c);
+          if (isTarget) {
+            cell.classList.add('target');
+          }
+
+          // Check captures
+          const isCapture = setup.captures.some(([cr, cc]) => cr === r && cc === c);
+          if (isCapture) {
+            cell.classList.add('target-capture');
+          }
+
+          // Check enemies
+          const enemy = setup.enemies.find(([er, ec]) => er === r && ec === c);
+          if (enemy) {
+            cell.textContent = enemy[2];
+          }
+
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    function renderPieceDetail(type) {
+      const info = PIECE_DETAILS[type];
+      const container = document.getElementById('piece-detail-card');
+      const isZh = currentLang === 'zh';
+
+      container.innerHTML = `
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="text-5xl">${info.symbol}</span>
+            <div>
+              <h3 class="text-2xl font-bold text-white">${isZh ? info.nameZh : info.nameEn}</h3>
+              <span class="text-xs text-amber-400 font-semibold">${isZh ? '戰力價值: ' : 'Value: '} ${info.points} ${info.points === 1 ? 'Point' : 'Points'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-sm text-slate-300 leading-relaxed pt-2">
+          <p class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            ${isZh ? info.descZh : info.descEn}
+          </p>
+        </div>
+      `;
+    }
+
+    // --- Tab 3: Special Rules Demos ---
+    function demoSpecial(type) {
+      const modal = document.getElementById('special-demo-modal');
+      const title = document.getElementById('demo-modal-title');
+      const desc = document.getElementById('demo-modal-desc');
+      const grid = document.getElementById('board-grid-special');
+      modal.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      let board = Array(8).fill(null).map(() => Array(8).fill(''));
+
+      if (type === 'castle') {
+        title.textContent = (currentLang === 'zh') ? '王車易位演示 (Kingside Castling)' : 'Kingside Castling Demonstration';
+        desc.textContent = (currentLang === 'zh') 
+          ? '國王從 e1 走 2 格到 g1，城堡隨即跳過國王停在 f1。'
+          : 'King moves 2 squares from e1 to g1; the Rook leaps right over the King to f1.';
+
+        board[7][4] = '♔'; // e1
+        board[7][7] = '♖'; // h1
+
+        renderDemoGrid(grid, board, [[7, 6], [7, 5]]);
+      } else if (type === 'promotion') {
+        title.textContent = (currentLang === 'zh') ? '兵的升變演示 (Pawn Promotion)' : 'Pawn Promotion Demonstration';
+        desc.textContent = (currentLang === 'zh') 
+          ? '白兵在 e7，下一步直走邁進 e8 底線，立即變身為皇后 ♕！'
+          : 'White Pawn on e7 steps onto the 8th rank at e8 and instantly becomes a Queen ♕!';
+
+        board[1][4] = '♙'; // e7
+        renderDemoGrid(grid, board, [[0, 4]]);
+      } else if (type === 'enpassant') {
+        title.textContent = (currentLang === 'zh') ? '吃過路兵演示 (En Passant)' : 'En Passant Demonstration';
+        desc.textContent = (currentLang === 'zh') 
+          ? '白兵在 e5，黑兵剛剛從 d7 走兩格到 d5。白兵可斜走至 d6 吃掉黑兵！'
+          : 'White Pawn on e5. Black Pawn just jumped 2 squares to d5. White can capture it by moving diagonally to d6!';
+
+        board[3][4] = '♙'; // e5
+        board[3][3] = '♟'; // d5
+        renderDemoGrid(grid, board, [[2, 3]]);
+      }
+    }
+
+    function renderDemoGrid(grid, board, targetCoords) {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const cell = document.createElement('div');
+          const isLight = (r + c) % 2 === 0;
+          cell.className = `board-cell ${isLight ? 'light' : 'dark'}`;
+          cell.textContent = board[r][c];
+
+          const isTarget = targetCoords.some(([tr, tc]) => tr === r && tc === c);
+          if (isTarget) cell.classList.add('target');
+
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    // --- Tab 5: Mini Quiz ---
+    const QUIZ_QUESTIONS = [
+      {
+        id: 1,
+        questionEn: "Which is the ONLY piece on the chessboard that can jump over other pieces?",
+        questionZh: "西洋棋全盤中，唯一能夠「越過其他棋子跳躍」的是哪一隻棋子？",
+        optionsEn: ["Bishop", "Knight", "Rook", "Pawn"],
+        optionsZh: ["主教 (Bishop)", "騎士/馬 (Knight)", "城堡/車 (Rook)", "兵 (Pawn)"],
+        correctIndex: 1,
+        explanationEn: "Correct! The Knight moves in an L-shape and can jump over friends and foes alike!",
+        explanationZh: "答對了！騎士走 L 型走法，且是全盤唯一能越子跳躍的棋子。"
+      },
+      {
+        id: 2,
+        questionEn: "What is the point value of a Rook?",
+        questionZh: "城堡（車 / Rook）的標準戰力價值分是多少？",
+        optionsEn: ["1 Point", "3 Points", "5 Points", "9 Points"],
+        optionsZh: ["1 分", "3 分", "5 分", "9 分"],
+        correctIndex: 2,
+        explanationEn: "Spot on! Pawn = 1, Knight/Bishop = 3, Rook = 5, Queen = 9.",
+        explanationZh: "正確！兵=1分、馬/象=3分、車=5分、后=9分。"
+      },
+      {
+        id: 3,
+        questionEn: "What happens if a player's King is NOT in check, but they have NO legal moves anywhere on the board?",
+        questionZh: "若國王當前「沒有被將軍」，但全盤已無任何合法步法可走，結果為何？",
+        optionsEn: ["The other player wins", "Stalemate (Draw)", "The player loses 1 point", "Play continues"],
+        optionsZh: ["對手直接獲勝", "逼和 (Stalemate / 和棋)", "該玩家扣 1 分", "繼續強行下棋"],
+        correctIndex: 1,
+        explanationEn: "Exactly! That is Stalemate, which results in a tie/draw (½ - ½).",
+        explanationZh: "完全正確！這是逼和 (Stalemate)，雙方各得 ½ 分握手言和。"
+      },
+      {
+        id: 4,
+        questionEn: "Which of the following is REQUIRED for Castling?",
+        questionZh: "下列哪一項是進行「王車易位」的必要條件？",
+        optionsEn: [
+          "The King must be in check",
+          "Neither the King nor chosen Rook has moved yet",
+          "There must be at least one pawn between them",
+          "It must happen before move 10"
+        ],
+        optionsZh: [
+          "國王當前必須處在被將軍狀態",
+          "國王與該隻城堡在此之前從未移動過",
+          "國王與城堡之間必須有一隻兵",
+          "必須在第 10 回合之前完成"
+        ],
+        correctIndex: 1,
+        explanationEn: "Correct! Once the King or Rook has made any move, castling with that rook is permanently forbidden.",
+        explanationZh: "答對了！只要國王或該城堡動過一步，便再也不能進行該側的王車易位。"
+      }
+    ];
+
+    let quizAnswers = {};
+
+    function renderQuiz() {
+      const container = document.getElementById('quiz-cards-container');
+      container.innerHTML = '';
+
+      const isZh = currentLang === 'zh';
+      let correctCount = 0;
+
+      QUIZ_QUESTIONS.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between';
+
+        const hasAnswered = quizAnswers[q.id] !== undefined;
+        const isCorrect = quizAnswers[q.id] === q.correctIndex;
+        if (isCorrect) correctCount++;
+
+        const options = isZh ? q.optionsZh : q.optionsEn;
+
+        let optionsHtml = '';
+        options.forEach((opt, oIdx) => {
+          let btnClass = 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700';
+          if (hasAnswered) {
+            if (oIdx === q.correctIndex) {
+              btnClass = 'bg-emerald-600/30 text-emerald-300 border-emerald-500 font-bold';
+            } else if (oIdx === quizAnswers[q.id]) {
+              btnClass = 'bg-rose-600/30 text-rose-300 border-rose-500';
+            } else {
+              btnClass = 'bg-slate-950 text-slate-500 border-slate-800';
+            }
+          }
+
+          optionsHtml += `
+            <button onclick="answerQuiz(${q.id}, ${oIdx})" ${hasAnswered ? 'disabled' : ''} class="w-full text-left p-3 rounded-xl border text-xs transition ${btnClass}">
+              ${String.fromCharCode(65 + oIdx)}. ${opt}
+            </button>
+          `;
+        });
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">Question ${idx + 1}</span>
+              ${hasAnswered ? (isCorrect ? '<span class="text-emerald-400 text-xs font-bold">✓ Correct</span>' : '<span class="text-rose-400 text-xs font-bold">✗ Incorrect</span>') : ''}
+            </div>
+            <h4 class="font-bold text-white text-sm mb-4">${isZh ? q.questionZh : q.questionEn}</h4>
+            <div class="space-y-2 mb-4">
+              ${optionsHtml}
+            </div>
+          </div>
+          ${hasAnswered ? `
+            <div class="p-3 rounded-xl ${isCorrect ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' : 'bg-slate-950 text-slate-400 border border-slate-800'} text-xs">
+              💡 ${isZh ? q.explanationZh : q.explanationEn}
+            </div>
+          ` : ''}
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('quiz-score').textContent = `${correctCount} / ${QUIZ_QUESTIONS.length}`;
+
+      if (correctCount === QUIZ_QUESTIONS.length && Object.keys(quizAnswers).length === QUIZ_QUESTIONS.length) {
+        try {
+          if (window.confetti) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        } catch (e) {}
+      }
+    }
+
+    function answerQuiz(qId, selectedIdx) {
+      quizAnswers[qId] = selectedIdx;
+      renderQuiz();
+    }
+
+    // --- Init ---
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedLang = localStorage.getItem('chess_rules_tool_lang');
+      if (savedLang) currentLang = savedLang;
+      applyLanguage();
+      initBasicBoard();
+      selectPiece('pawn');
+    });
+  </script>
+</body>
+</html>
